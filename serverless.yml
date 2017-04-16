@@ -1,0 +1,33 @@
+service: jenkins-hook
+
+provider:
+  name: aws
+  runtime: python2.7
+  stage: dev
+  region: eu-west-1
+  memorySize: 128
+  timeout: 4
+
+custom: ${file(bot_settings.yml)}
+
+functions:
+  hook:
+    name: ${self:service}-jenbot-hook-${opt:stage, self:provider.stage}
+    description: Slack hook handler
+    handler: hook_handler.handler
+    environment:
+      slack_webhook: ${self:custom.slack_webhook_${opt:stage, self:provider.stage}}
+      slack_token: ${self:custom.slack_token_${opt:stage, self:provider.stage}}
+    events:
+      - http:
+          path: hook
+          method: post
+
+  command:
+    name: ${self:service}-jenbot-command-${opt:stage, self:provider.stage}
+    description: Slack command handler
+    handler: command_handler.handler
+    events:
+      - http:
+          path: command
+          method: post
