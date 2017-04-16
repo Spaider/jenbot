@@ -1,3 +1,15 @@
+# Bot settings file. Never commit it to repository
+bot_settings.yml
+
+.idea
+.serverless
+
+# Virtualenv
+bin
+include
+vendored
+pip-selfcheck.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
