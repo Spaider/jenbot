@@ -16,8 +16,8 @@ functions:
     description: Slack hook handler
     handler: hook_handler.handler
     environment:
-      slack_webhook: ${self:custom.slack_webhook_${opt:stage, self:provider.stage}}
-      slack_token: ${self:custom.slack_token_${opt:stage, self:provider.stage}}
+      slackWebhook: ${self:custom.${opt:stage, self:provider.stage}.slackWebhook}
+      slackToken: ${self:custom.${opt:stage, self:provider.stage}.slackToken}
     events:
       - http:
           path: hook
@@ -27,6 +27,9 @@ functions:
     name: ${self:service}-jenbot-command-${opt:stage, self:provider.stage}
     description: Slack command handler
     handler: command_handler.handler
+    environment:
+      jenkinsUser: ${self:custom.${opt:stage, self:provider.stage}.jenkinsUser}
+      jenkinsPassword: ${self:custom.${opt:stage, self:provider.stage}.jenkinsPassword}
     events:
       - http:
           path: command

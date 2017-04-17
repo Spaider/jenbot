@@ -78,7 +78,7 @@ def handler(event, context):
 
             }
         ]}
-    res = requests.post(os.environ["slack_webhook"],
+    res = requests.post(os.environ["slackWebhook"],
                         data=json.dumps(data),
                         headers={"Content-type": "application/json"})
 

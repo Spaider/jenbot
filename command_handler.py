@@ -11,6 +11,22 @@ import requests
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+JENKINS_USER = None
+JENKINS_PASSWORD = None
+
+
+def init_globals():
+    global JENKINS_USER
+    global JENKINS_PASSWORD
+
+    if "jenkinsUser" not in os.environ:
+        raise Exception("jenkinsUser environment variable is not defined")
+    JENKINS_USER = os.environ["jenkinsUser"]
+
+    if "jenkinsPassword" not in os.environ:
+        raise Exception("jenkinsPassword environment variable is not defined")
+    JENKINS_PASSWORD = os.environ["jenkinsPassword"]
+
 
 def get_payload(body_str):
     request_body = urlparse.parse_qs(body_str)
@@ -42,7 +58,7 @@ def get_jenkins_crumb(jenkins_url):
     # TODO: Get authorization token from envVar
     logger.info("Getting Jenkins crumb from " + jenkins_url)
     res = requests.get(jenkins_url + "crumbIssuer/api/json",
-                       auth=('denis', '830f0cf47a0d2f25a09ce5dd453fb696'),
+                       auth=(JENKINS_USER, JENKINS_PASSWORD),
                        verify=False)
     crumb = res.json()["crumb"]
     logger.info("Crumb is " + crumb)
@@ -59,7 +75,7 @@ def get_pending_input_url(build_url, crumb):
 
     logger.info("Getting build status")
     res = requests.get(build_url + "wfapi",
-                       auth=('denis', '830f0cf47a0d2f25a09ce5dd453fb696'),
+                       auth=(JENKINS_USER, JENKINS_PASSWORD),
                        verify=False,
                        headers={
                            "Jenkins-Crumb": crumb
@@ -71,7 +87,7 @@ def get_pending_input_url(build_url, crumb):
 
     logger.info("Getting proceed URL")
     res = requests.post(build_url + "wfapi/pendingInputActions",
-                        auth=('denis', '830f0cf47a0d2f25a09ce5dd453fb696'),
+                        auth=(JENKINS_USER, JENKINS_PASSWORD),
                         verify=False,
                         headers={
                             "Jenkins-Crumb": crumb
@@ -86,7 +102,7 @@ def get_pending_input_url(build_url, crumb):
 def approve_build(proceed_url, crumb):
     logger.info("Approving build")
     res = requests.post(proceed_url,
-                        auth=('denis', '830f0cf47a0d2f25a09ce5dd453fb696'),
+                        auth=(JENKINS_USER, JENKINS_PASSWORD),
                         verify=False,
                         headers={
                             "Jenkins-Crumb": crumb,
@@ -104,7 +120,7 @@ def approve_build(proceed_url, crumb):
 def reject_build(abort_url, crumb):
     logger.info("Rejecting build")
     res = requests.post(abort_url,
-                        auth=('denis', '830f0cf47a0d2f25a09ce5dd453fb696'),
+                        auth=(JENKINS_USER, JENKINS_PASSWORD),
                         verify=False,
                         headers={
                             "Jenkins-Crumb": crumb
@@ -115,6 +131,8 @@ def reject_build(abort_url, crumb):
 
 def handler(event, context):
     try:
+        init_globals()
+
         payload = get_payload(event["body"])
         user_name = payload["user"]["name"]
         logger.info("Received command request from " + user_name)
