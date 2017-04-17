@@ -4,6 +4,10 @@ import urlparse
 import os
 import sys
 
+import time
+
+import datetime
+
 here = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(here, "vendored"))
 import requests
@@ -154,15 +158,23 @@ def handler(event, context):
         else:
             reject_build(pending_input_urls[1], crumb)
 
-        if approval_status:
-            approve_msg = "Version " + build_version + " deployment approved by "
-        else:
-            approve_msg = "Version " + build_version + " deployment rejected by "
+        ts = int(round(time.time()))
+        fallback_time = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+        approve_msg = str.format("Version {} deployment *{}* at <!date^{}^{{date_num}} {{time_secs}}|{}> by ",
+                                 build_version,
+                                 "approved" if approval_status else "declined",
+                                 ts,
+                                 fallback_time)
 
         response = {
             "statusCode": 200,
             "body": json.dumps({
-                "text": approve_msg + user_name
+                "attachments": [{
+                    "text": approve_msg + user_name,
+                    "color": "good" if approval_status else "danger",
+                    "mrkdwn_in": ["text"]
+                }]
             })
         }
     except Exception as e:
