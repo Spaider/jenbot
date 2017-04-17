@@ -158,15 +158,16 @@ def handler(event, context):
         else:
             reject_build(pending_input_urls[1], crumb)
 
-        approve_msg = str.format("Version {} deployment *{}* by ",
+        approve_msg = str.format("Version {} deployment *{}* by {}",
                                  build_version,
-                                 "approved" if approval_status else "declined")
+                                 "approved" if approval_status else "declined",
+                                 user_name)
 
         response = {
             "statusCode": 200,
             "body": json.dumps({
                 "attachments": [{
-                    "text": approve_msg + user_name,
+                    "text": approve_msg,
                     "color": "good" if approval_status else "danger",
                     "mrkdwn_in": ["text"],
                     "ts": int(round(time.time()))

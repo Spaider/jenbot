@@ -46,7 +46,9 @@ def handler(event, context):
     logger.info("Received request for build version " + build_version)
 
     data = {
-        "text": "Build " + build_version + " requests deployment",
+        "text": str.format("Build version {} requests deployment. <{}|View changes>",
+                           build_version,
+                           build_url + "/changes"),
         "attachments": [
             {
                 "text": "Proceed with deployment?",
