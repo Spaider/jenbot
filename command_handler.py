@@ -14,6 +14,7 @@ logger.setLevel(logging.INFO)
 
 JENKINS_USER = None
 JENKINS_PASSWORD = None
+SLACK_TOKEN = None
 
 requests.packages.urllib3.disable_warnings()
 
@@ -21,6 +22,7 @@ requests.packages.urllib3.disable_warnings()
 def init_globals():
     global JENKINS_USER
     global JENKINS_PASSWORD
+    global SLACK_TOKEN
 
     if "jenkinsUser" not in os.environ:
         raise Exception("jenkinsUser environment variable is not defined")
@@ -29,6 +31,10 @@ def init_globals():
     if "jenkinsPassword" not in os.environ:
         raise Exception("jenkinsPassword environment variable is not defined")
     JENKINS_PASSWORD = os.environ["jenkinsPassword"]
+
+    if "slackToken" not in os.environ:
+        raise Exception("slackToken environment variable is not defined")
+    SLACK_TOKEN = os.environ["slackToken"]
 
 
 def get_payload(body_str):
@@ -136,6 +142,12 @@ def handler(event, context):
         init_globals()
 
         payload = get_payload(event["body"])
+        logger.info(payload)
+
+        # Check Slack token for validity
+        if "token" not in payload or payload["token"] != SLACK_TOKEN:
+            raise Exception("token is not valid")
+
         user_name = payload["user"]["name"]
         logger.info("Received command request from " + user_name)
 
@@ -179,9 +191,7 @@ def handler(event, context):
     except Exception as e:
         return {
             "statusCode": 500,
-            "body": {
-                json.dumps({"message": e.message})
-            }
+            "body": json.dumps({"message": e.message})
         }
 
     return response

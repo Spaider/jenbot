@@ -17,7 +17,6 @@ functions:
     handler: hook_handler.handler
     environment:
       slackWebhook: ${self:custom.${opt:stage, self:provider.stage}.slackWebhook}
-      slackToken: ${self:custom.${opt:stage, self:provider.stage}.slackToken}
     events:
       - http:
           path: hook
@@ -30,6 +29,7 @@ functions:
     environment:
       jenkinsUser: ${self:custom.${opt:stage, self:provider.stage}.jenkinsUser}
       jenkinsPassword: ${self:custom.${opt:stage, self:provider.stage}.jenkinsPassword}
+      slackToken: ${self:custom.${opt:stage, self:provider.stage}.slackToken}
     events:
       - http:
           path: command
