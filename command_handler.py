@@ -3,10 +3,7 @@ import logging
 import urlparse
 import os
 import sys
-
 import time
-
-import datetime
 
 here = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(here, "vendored"))
@@ -17,6 +14,8 @@ logger.setLevel(logging.INFO)
 
 JENKINS_USER = None
 JENKINS_PASSWORD = None
+
+requests.packages.urllib3.disable_warnings()
 
 
 def init_globals():
@@ -59,7 +58,6 @@ def get_approval_status(payload):
 
 
 def get_jenkins_crumb(jenkins_url):
-    # TODO: Get authorization token from envVar
     logger.info("Getting Jenkins crumb from " + jenkins_url)
     res = requests.get(jenkins_url + "crumbIssuer/api/json",
                        auth=(JENKINS_USER, JENKINS_PASSWORD),
@@ -150,7 +148,11 @@ def handler(event, context):
             return {
                 "statusCode": 200,
                 "body": json.dumps({
-                    "text": "Build " + build_version + " is not waiting for input"
+                    "attachments": [{
+                        "text": "Build " + build_version + " is not waiting for input",
+                        "color": "warning",
+                        "ts": int(round(time.time()))
+                    }]
                 })
             }
         if approval_status:

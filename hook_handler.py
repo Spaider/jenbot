@@ -10,6 +10,7 @@ import requests
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+requests.packages.urllib3.disable_warnings()
 
 def handler(event, context):
 
