@@ -142,7 +142,6 @@ def handler(event, context):
         init_globals()
 
         payload = get_payload(event["body"])
-        logger.info(payload)
 
         # Check Slack token for validity
         if "token" not in payload or payload["token"] != SLACK_TOKEN:
@@ -161,7 +160,7 @@ def handler(event, context):
                 "statusCode": 200,
                 "body": json.dumps({
                     "attachments": [{
-                        "text": "Build " + build_version + " is not waiting for input",
+                        "text": "Build %s is not waiting for input" % build_version,
                         "color": "warning",
                         "ts": int(round(time.time()))
                     }]
@@ -189,6 +188,7 @@ def handler(event, context):
             })
         }
     except Exception as e:
+        logger.error(e.message, exc_info=1)
         return {
             "statusCode": 500,
             "body": json.dumps({"message": e.message})

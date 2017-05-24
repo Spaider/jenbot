@@ -85,9 +85,11 @@ def handler(event, context):
     res = requests.post(os.environ["slackWebhook"],
                         data=json.dumps(data),
                         headers={"Content-type": "application/json"})
+    if not res.ok:
+        logger.error('Error posting response to Slack')
 
     response = {
-        "statusCode": 200
+        "statusCode": 200 if res.ok else 500
     }
 
     return response
