@@ -1,16 +1,24 @@
 import json
 import logging
-import urlparse
 import os
 import sys
 import time
+import urlparse
+
+import boto3
 
 here = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(here, "vendored"))
 import requests
 
+# Lambda bootstrapper installs its logging handler which prevents setting
+# our own logging config. Remove all handlers at first
+root = logging.getLogger()
+if root.handlers:
+    for handler in root.handlers:
+        root.removeHandler(handler)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s \"%(message)s\"")
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
 JENKINS_USER = None
 JENKINS_PASSWORD = None
@@ -137,6 +145,12 @@ def reject_build(abort_url, crumb):
     return res.ok
 
 
+def post_response_to_slack(response_url, body):
+    res = requests.post(response_url, json=body)
+    if not res.ok:
+        logger.error("Error posting response to Slack: %s", res.text)
+
+
 def handler(event, context):
     try:
         init_globals()
@@ -147,7 +161,24 @@ def handler(event, context):
         if "token" not in payload or payload["token"] != SLACK_TOKEN:
             raise Exception("token is not valid")
 
+        if "response_url" not in payload:
+            raise Exception("response_url not found in request")
+
+        # Initial request received. Response with HTTP 200 and
+        # call ourself again
+        if "recursive" not in event:
+            logger.info("Initial call")
+            session = boto3.session.Session()
+            lambda_cli = session.client("lambda")
+            lambda_cli.invoke_async(FunctionName=context.function_name,
+                                    InvokeArgs=json.dumps(dict({"recursive": True}, **event)))
+            return {
+                "statusCode": 200
+            }
+
+        response_url = payload["response_url"]
         user_name = payload["user"]["name"]
+        user_id = payload["user"]["id"]
         logger.info("Received command request from " + user_name)
 
         command_request = get_approval_status(payload)
@@ -156,29 +187,31 @@ def handler(event, context):
         crumb = get_jenkins_crumb(command_request["jenkinsUrl"])
         pending_input_urls = get_pending_input_url(command_request["buildUrl"], crumb)
         if pending_input_urls is None:
-            return {
-                "statusCode": 200,
-                "body": json.dumps({
+            post_response_to_slack(
+                response_url,
+                {
                     "attachments": [{
                         "text": "Build %s is not waiting for input" % build_version,
                         "color": "warning",
                         "ts": int(round(time.time()))
                     }]
                 })
-            }
+            return {}
+
         if approval_status:
             approve_build(pending_input_urls[0], crumb)
         else:
             reject_build(pending_input_urls[1], crumb)
 
-        approve_msg = str.format("Version {} deployment *{}* by {}",
+        approve_msg = str.format("Version {} deployment *{}* by <@{}|{}>",
                                  build_version,
                                  "approved" if approval_status else "declined",
-                                 user_name)
+                                 user_name,
+                                 user_id)
 
-        response = {
-            "statusCode": 200,
-            "body": json.dumps({
+        post_response_to_slack(
+            response_url,
+            {
                 "attachments": [{
                     "text": approve_msg,
                     "color": "good" if approval_status else "danger",
@@ -186,12 +219,7 @@ def handler(event, context):
                     "ts": int(round(time.time()))
                 }]
             })
-        }
     except Exception as e:
         logger.error(e.message, exc_info=1)
-        return {
-            "statusCode": 500,
-            "body": json.dumps({"message": e.message})
-        }
 
-    return response
+    return {}

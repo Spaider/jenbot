@@ -6,13 +6,23 @@ provider:
   stage: dev
   region: eu-west-1
   memorySize: 128
-  timeout: 4
+  timeout: 30
   iamRoleStatements:
     -  Effect: "Allow"
        Action:
          - "xray:PutTraceSegments"
          - "xray:PutTelemetryRecords"
+         - "lambda:InvokeFunction"
        Resource: "*"
+
+package:
+  exclude:
+    - .git/**
+    - .idea/**
+    - 'lib/python2.7/site-packages/pip*/**'
+    - 'lib/python2.7/site-packages/docutils*/**'
+    - 'lib/python2.7/site-packages/setuptools*/**'
+    - 'lib/python2.7/site-packages/boto*/**'
 
 custom: ${file(bot_settings.yml)}
 
